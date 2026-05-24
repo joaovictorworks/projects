@@ -117,6 +117,8 @@ def start():
 def pausar():
     global rodar
     rodar = False
+
+
 # funcão para reiniciar
 # def reiniciar():
 #     global tempo
@@ -134,7 +136,7 @@ def reiniciar():
     global rodar
 
     rodar = False
-    contador = -5
+    contador = 0
     tempo = "00:00:00"
     label_tempo['text'] = tempo
 
