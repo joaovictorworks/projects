@@ -16,27 +16,31 @@ cor_fundo = "#343a40"
 cor_letra = "#ffffff"
 font_style = ('Arial', 12, 'bold')
 
-# FORÇAR GRADE 8x10 E ESCOLHER AS PRIMEIRAS 40 IMAGENS PNG
-# (10x8 = 80 cartas -> 40 pares)
-# Carregar imagens da pasta central de assets (foi movida para ../assets)
-assets_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'assets'))
-base_dir = assets_dir
+# =====================================================================
+# CONFIGURAÇÃO DA GRADE E DAS VARIÁVEIS (DEFINIDAS NO TOPO)
+# =====================================================================
+num_linhas = 8
+num_colunas = 10
+DESIRED_PAIRS = 40  # 80 cartas / 2
+
+# Configuração dos caminhos (Procura na própria pasta do jogo)
+base_dir = os.path.dirname(os.path.abspath(__file__))
+
 all_pngs = []
 try:
-    all_pngs = [f for f in sorted(os.listdir(base_dir)) if f.lower().endswith('.png')]
+    # Lista apenas os arquivos PNG da própria pasta do jogo (ignora ícones se houver)
+    all_pngs = [f for f in sorted(os.listdir(base_dir)) if f.lower().endswith('.png') and f.lower() != 'icon.png']
 except Exception:
     all_pngs = []
-DESIRED_PAIRS = 40
+
+# Garante que teremos exatamente 40 itens na lista
 if len(all_pngs) >= DESIRED_PAIRS:
     arquivos_png = all_pngs[:DESIRED_PAIRS]
 else:
-    # se houver menos de 40 imagens, usa todas disponíveis; se nenhuma, gera nomes de fallback
-    arquivos_png = all_pngs if all_pngs else [f'{i}.png' for i in range(1, DESIRED_PAIRS + 1)]
-
-# Forçar a grade pedida pelo usuário
-# Forçar a grade pedida pelo usuário (8 linhas x 10 colunas)
-num_linhas = 8
-num_colunas = 10
+    arquivos_png = list(all_pngs)
+    fim_fallback = DESIRED_PAIRS - len(arquivos_png)
+    for i in range(1, fim_fallback + 1):
+        arquivos_png.append(f'fallback_{i}.png')
 
 # Total de cartas e tentativas
 num_images = len(arquivos_png)
@@ -49,24 +53,28 @@ janela.title('Jogo da Memória')
 janela.configure(bg=cor_fundo)
 
 # CARREGAR E REDIMENSIONAR AS IMAGENS =====
-tamanho_imagem = (70, 70) # Tamanho da imagem em pixels (Largura x Altura)
-imagens_tk = {} # Dicionário para o Python não apagar as imagens da memória
-
-# Loop que carrega cada PNG e salva no dicionário (caminho relativo ao script)
-for arquivo in arquivos_png:
-    caminho = os.path.join(base_dir, arquivo)
-    try:
-        img = Image.open(caminho)
-        img = img.resize(tamanho_imagem)
-        imagens_tk[arquivo] = ImageTk.PhotoImage(img)
-    except Exception:
-        print(f"Aviso: Não encontrei a imagem {arquivo} em {caminho}.")
+tamanho_imagem = (70, 70) 
+imagens_tk = {} 
 
 # Criando uma imagem toda preta para ser as "Costas" da carta
 img_costas = Image.new('RGB', tamanho_imagem, color='black')
 foto_costas = ImageTk.PhotoImage(img_costas)
 
-# Subclasse de Button para armazenar atributos personalizados como nome_imagem
+# Loop que carrega cada PNG e salva no dicionário
+for arquivo in arquivos_png:
+    caminho = os.path.join(base_dir, arquivo)
+    try:
+        if "fallback_" in arquivo or not os.path.exists(caminho):
+            raise FileNotFoundError
+        img = Image.open(caminho)
+        img = img.resize(tamanho_imagem)
+        imagens_tk[arquivo] = ImageTk.PhotoImage(img)
+    except Exception:
+        # Placeholder caso a imagem não exista na pasta
+        img_placeholder = Image.new('RGB', tamanho_imagem, color='#555555')
+        imagens_tk[arquivo] = ImageTk.PhotoImage(img_placeholder)
+
+# Subclasse de Button para armazenar atributos personalizados
 class Carta(tk.Button):
     def __init__(self, master=None, **kwargs):
         super().__init__(master, **kwargs)
@@ -74,7 +82,7 @@ class Carta(tk.Button):
 
 # CRIAR UMA GRID ALEATÓRIA PARA OS CARTÕES ==========================
 def creat_card_grid():
-    cartas = arquivos_png * 2 # Duplica as 8 imagens para fazer 16 cartas (pares)
+    cartas = arquivos_png * 2 
     random.shuffle(cartas)
     grid = []
     for _ in range(num_linhas):
@@ -86,24 +94,20 @@ def creat_card_grid():
 
 # LIDA COM O CLIQUE DO JOGADOR NOS CARTÕES ==================
 def card_click(linha, col):
-    # Trava para evitar cliques se já existirem 2 cartões sendo checados
     if len(cartao_revelado) >= 2:
         return
 
     cartao = cartoes[linha][col]
     nome_imagem_oculta = grid[linha][col]
     
-    # Verifica se o cartão já está revelado ou já foi desativado (já fez par)
     if cartao['state'] == tk.DISABLED or cartao in cartao_revelado:
         return
         
-    # Vira a carta: Muda a imagem preta pela imagem PNG
     cartao.config(image=imagens_tk[nome_imagem_oculta]) 
-    cartao.nome_imagem = nome_imagem_oculta # Guardamos o nome na própria carta para checar depois
+    cartao.nome_imagem = nome_imagem_oculta 
     cartao_revelado.append(cartao)
     
     if len(cartao_revelado) == 2:
-        # Dá 1 segundo (1000ms) para o jogador ver a segunda carta
         janela.after(1000, check_match)
 
 # VERIFICA SE OS DOIS CARTÕES REVELADOS SÃO IGUAIS
@@ -117,10 +121,9 @@ def check_match():
         cartoes_correspondante.extend([cartao1, cartao2])
         check_win() 
     else:
-        # Errou! Esconde as cartas e CONTA UMA TENTATIVA
         cartao1.config(image=foto_costas)
         cartao2.config(image=foto_costas)
-        update_score() # <--- Mude para cá!
+        update_score() 
         
     cartao_revelado.clear()
 
@@ -128,7 +131,6 @@ def check_match():
 def check_win():
     if len(cartoes_correspondante) == num_linhas * num_colunas:
         messagebox.showinfo('Parabéns!', 'Você Ganhou o jogo!')
-        # salvar highscore: quanto menos tentativas, melhor -> usamos (max_tentativa - tentativas)
         try:
             score = max(0, max_tentativa - tentativas)
             game_utils.save_highscore('jogo_memoria', score)
@@ -145,7 +147,7 @@ def update_score():
         messagebox.showinfo('Fim de jogo', 'Você perdeu o jogo!')
         janela.quit()
 
-# CRIAR GRADE DE CARTÕES ===================
+# INICIALIZAÇÃO DA GRADE E ESTADO DO JOGO ===================
 grid = creat_card_grid()
 cartoes = []
 cartao_revelado = []
@@ -155,7 +157,6 @@ tentativas = 0
 for linha in range(num_linhas):
     linhas_cartoes = []
     for coluna in range(num_colunas):
-        # Aqui removemos o width e height em texto, pois a imagem define o tamanho do botão
         cartao = Carta(janela, image=foto_costas, bg='black',
                        command=lambda r=linha, c=coluna: card_click(r, c),
                        relief=tk.RAISED, bd=1)
