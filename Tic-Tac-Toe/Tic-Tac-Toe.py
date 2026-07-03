@@ -140,4 +140,22 @@ def Iniciar_Jogo():
         elif vencedor_atual == 'Foi Empate':
             app_vencedor['text'] = 'FOI EMPATE!'
 
-... (file continues)
+    # Criar 9 botões do tabuleiro
+    for i in range(1, 10):
+        botao = tk.Button(frame_tabuleiro, text='', width=6, height=3, bg=co1, fg=co0, font=('Ivy', 18, 'bold'), relief='ridge', command=lambda i=i: controlar(i))
+        row = (i-1) // 3
+        col = (i-1) % 3
+        botao.grid(row=row, column=col, padx=5, pady=5)
+        botoes.append(botao)
+
+    # Centraliza os botões dentro do frame (garante que grid funcione)
+    for r in range(3):
+        frame_tabuleiro.grid_rowconfigure(r, weight=1)
+        frame_tabuleiro.grid_columnconfigure(r, weight=1)
+
+# Botão inicial para começar o jogo
+b_jogar = tk.Button(frame_tabuleiro, text='JOGAR', font=('Ivy', 14, 'bold'), bg=co2, fg=co1, width=12, relief='raised', command=Iniciar_Jogo)
+b_jogar.pack(expand=True)
+
+# Inicia o loop da interface
+janela.mainloop()

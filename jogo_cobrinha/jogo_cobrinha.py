@@ -1,7 +1,12 @@
 # configurando inicial
+import os
+import sys
 import pygame
 import random
 import time
+
+# Garantir que o pacote `game_utils` (pasta pai) esteja no caminho de importação
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import game_utils
 
 pygame.init()
