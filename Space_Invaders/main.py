@@ -1,6 +1,7 @@
 import pygame
 from pathlib import Path
 import math
+import random
 
 altura = 800
 largura = 725
@@ -107,24 +108,92 @@ class Tiro(object):
         if self.x < -50 or self.x > largura or self.y > altura or self.y < 50:
             return True
 
+class Asteroide(object):
+    def __init__(self,rank):
+        self.rank = rank
+        if self.rank == 1:
+            self.imagem = asteroide50
+        elif self.rank == 2:
+            self.imagem = asteroide100
+        else:
+            self.imagem = asteroide150
+        self.largura = 50 * rank
+        self.altura = 50 * rank
+        self.pontoAleatorio = random.choice([
+            (random.randrange(0, largura - self.largura), random.choice([-1*self.altura - 5, altura + 5])),
+            (random.choice([-1*self.largura - 5, largura + 5]), random.randrange(0, altura - self.altura))
+        ])
+        self.x, self.y = self.pontoAleatorio
+        if self.x < largura//2:
+            self.direcaoX = 1
+        else:
+            self.direcaoX = -1
+        if self.y < altura//2:
+            self.direcaoY = 1
+        else:
+            self.direcaoY = -1
+        self.velocidadeX = self.direcaoX * random.randrange(1,3)
+        self.velocidadeY = self.direcaoY * random.randrange(1,3)
+    
+    def desenho(self, tela):
+        tela.blit(self.imagem, (self.x, self.y))
+
 def redesenharJogo():
     tela.blit(fundo,(0,0))
     jogador.desenho(tela)
+    for a in asteroide:
+        a.desenho(tela)
     for b in tirosDoJogador:
         b.desenho(tela)
     pygame.display.update()
 
 jogador = Jogador()
 tirosDoJogador = []
+asteroide = []
+conta = 0
 rodando = True
+
 while rodando:
-    relogio.tick(68)
+    relogio.tick(60)
+    conta += 1
     if not fimDeJogo:
+        if conta % 50 == 0:
+            ran = random.choice([1,1,1,2,2,3])
+            asteroide.append(Asteroide(ran))
         jogador.verificarLocalizacao()
         for b in tirosDoJogador:
             b.movimenta()
             if b.verificarForaDaTela():
                 tirosDoJogador.pop(tirosDoJogador.index(b))
+        
+        for a in asteroide[:]:
+            a.x += a.velocidadeX
+            a.y += a.velocidadeY
+
+            # colisão do tiro com asteroide
+            for b in tirosDoJogador[:]:
+                if ((a.x <= b.x <= a.x + a.largura or a.x <= b.x + b.largura <= a.x + a.largura) and
+                    (a.y <= b.y <= a.y + a.altura or a.y <= b.y + b.altura <= a.y + a.altura)):
+                    if a.rank == 3:
+                        na1 = Asteroide(2)
+                        na2 = Asteroide(2)
+                        na1.x = a.x
+                        na2.x = a.x
+                        na1.y = a.y
+                        na2.y = a.y
+                        asteroide.append(na1)
+                        asteroide.append(na2)
+                    elif a.rank == 2:
+                        na1 = Asteroide(1)
+                        na2 = Asteroide(1)
+                        na1.x = a.x
+                        na2.x = a.x
+                        na1.y = a.y
+                        na2.y = a.y
+                        asteroide.append(na1)
+                        asteroide.append(na2)
+                    asteroide.remove(a)
+                    tirosDoJogador.remove(b)
 
         teclas = pygame.key.get_pressed()
         if teclas[pygame.K_LEFT]:
@@ -138,7 +207,7 @@ while rodando:
         if eventos.type == pygame.QUIT:
             rodando = False
         if eventos.type == pygame.KEYDOWN:
-            if eventos.key == pygame.K_SPACE:
+            if eventos.key == pygame.K_z:
                 if not fimDeJogo:
                     tirosDoJogador.append(Tiro())
 
