@@ -2,7 +2,7 @@ import pygame
 from pathlib import Path
 import math
 import random
-
+pygame.init()
 altura = 800
 largura = 725
 
@@ -26,6 +26,8 @@ relogio = pygame.time.Clock()
 
 
 fimDeJogo = False
+vidas = 3
+score = 0
 
 class Jogador(object):
     def __init__(self):
@@ -140,11 +142,20 @@ class Asteroide(object):
 
 def redesenharJogo():
     tela.blit(fundo,(0,0))
+    fonte = pygame.font.SysFont('arial',30)
+    vidasText = fonte.render('Vidas: ' + str(vidas), 1, (255,255,255))
+    playAgainText = fonte.render('Press Space to Play Again', 1, (255,255,255))
+    scoreText = fonte.render('Score: ' + str(score), 1, (255,255,255))
+
     jogador.desenho(tela)
     for a in asteroide:
         a.desenho(tela)
     for b in tirosDoJogador:
         b.desenho(tela)
+    if fimDeJogo:
+        tela.blit(playAgainText,(largura//2 - playAgainText.get_width()//2, altura//2 - playAgainText.get_height()))
+    tela.blit(scoreText,(largura - scoreText.get_width() - 25, 25))
+    tela.blit(vidasText,(25,25))
     pygame.display.update()
 
 jogador = Jogador()
@@ -170,11 +181,19 @@ while rodando:
             a.x += a.velocidadeX
             a.y += a.velocidadeY
 
+            # colisão jogador com asteroide
+            if (jogador.x >= a.x and jogador.x <= a.x + a.largura) or (jogador.x + jogador.largura >= a.x and jogador.x + jogador.largura <= a.x + a.largura):
+                if (jogador.y >= a.y and jogador.y <= a.y + a.altura) or (jogador.y + jogador.altura >= a.y and jogador.y + jogador.altura <= a.y + a.altura):
+                    vidas -= 1
+                    asteroide.pop(asteroide.index(a))
+                    break
+
             # colisão do tiro com asteroide
             for b in tirosDoJogador[:]:
                 if ((a.x <= b.x <= a.x + a.largura or a.x <= b.x + b.largura <= a.x + a.largura) and
                     (a.y <= b.y <= a.y + a.altura or a.y <= b.y + b.altura <= a.y + a.altura)):
                     if a.rank == 3:
+                        score += 10
                         na1 = Asteroide(2)
                         na2 = Asteroide(2)
                         na1.x = a.x
@@ -184,6 +203,7 @@ while rodando:
                         asteroide.append(na1)
                         asteroide.append(na2)
                     elif a.rank == 2:
+                        score += 20
                         na1 = Asteroide(1)
                         na2 = Asteroide(1)
                         na1.x = a.x
@@ -192,8 +212,15 @@ while rodando:
                         na2.y = a.y
                         asteroide.append(na1)
                         asteroide.append(na2)
+                    else:
+                        score += 30
                     asteroide.remove(a)
                     tirosDoJogador.remove(b)
+                    break
+
+        if vidas <= 0:
+            fimDeJogo = True
+
 
         teclas = pygame.key.get_pressed()
         if teclas[pygame.K_LEFT]:
@@ -210,8 +237,12 @@ while rodando:
             if eventos.key == pygame.K_z:
                 if not fimDeJogo:
                     tirosDoJogador.append(Tiro())
+                else:
+                    fimDeJogo = False
+                    vidas = 3
+                    score = 0
+                    asteroide.clear()
 
     redesenharJogo()
 
 pygame.quit()
-    
